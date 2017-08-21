@@ -3,6 +3,18 @@
 // found in the LICENSE file.
 // extract from chromium source code by @liuwayong
 (function () {
+    function drawBox(context, color, dimensions) {
+        var alpha = context.globalAlpha;
+
+        context.globalAlpha = 0.6
+        context.beginPath();
+        context.rect(dimensions[0], dimensions[1], dimensions[2], dimensions[3]);
+        context.fillStyle = color;
+
+        context.fill();
+        context.globalAlpha = alpha;
+    }
+
     'use strict';
     /**
      * T-Rex runner.
@@ -87,7 +99,8 @@
     var FPS = 60;
 
     /** @const */
-    var IS_HIDPI = window.devicePixelRatio > 1;
+    // var IS_HIDPI = window.devicePixelRatio > 1;
+    var IS_HIDPI = true;
 
     /** @const */
     var IS_IOS = /iPad|iPhone|iPod/.test(window.navigator.platform);
@@ -105,12 +118,12 @@
     Runner.config = {
         ACCELERATION: 0.001,
         BG_CLOUD_SPEED: 0.2,
-        BOTTOM_PAD: 10,
+        BOTTOM_PAD: 85,
         CLEAR_TIME: 3000,
         CLOUD_FREQUENCY: 0.5,
         GAMEOVER_CLEAR_TIME: 750,
         GAP_COEFFICIENT: 0.6,
-        GRAVITY: 0.6,
+        GRAVITY: 0.3,
         INITIAL_JUMP_VELOCITY: 12,
         INVERT_FADE_DURATION: 12000,
         INVERT_DISTANCE: 700,
@@ -133,7 +146,7 @@
      */
     Runner.defaultDimensions = {
         WIDTH: DEFAULT_WIDTH,
-        HEIGHT: 150
+        HEIGHT: 246,
     };
 
 
@@ -159,27 +172,42 @@
      */
     Runner.spriteDefinition = {
         LDPI: {
-            CACTUS_LARGE: { x: 332, y: 2 },
-            CACTUS_SMALL: { x: 228, y: 2 },
+            OBSTACLE_0: { x: 1896, y: 304 },
+            OBSTACLE_1: { x: 2060, y: 346 },
+            OBSTACLE_2: { x: 2204, y: 280 },
+            OBSTACLE_3: { x: 2396, y: 264 },
+            OBSTACLE_4: { x: 2544, y: 260 },
+            OBSTACLE_5: { x: 2724, y: 252 },
+            PTERODACTYL: { x: 1756, y: 224 },
+//            CACTUS_SMALL: { x: 228, y: 2 },
             CLOUD: { x: 86, y: 2 },
             HORIZON: { x: 2, y: 54 },
+            SMOTRA: { x: 2, y: 54 },
             MOON: { x: 484, y: 2 },
-            PTERODACTYL: { x: 134, y: 2 },
             RESTART: { x: 2, y: 2 },
             TEXT_SPRITE: { x: 655, y: 2 },
             TREX: { x: 848, y: 2 },
             STAR: { x: 645, y: 2 }
         },
         HDPI: {
-            CACTUS_LARGE: { x: 652, y: 2 },
-            CACTUS_SMALL: { x: 446, y: 2 },
+            OBSTACLE_0: { x: 1896, y: 304 },
+            OBSTACLE_1: { x: 2060, y: 346 },
+            OBSTACLE_2: { x: 2204, y: 280 },
+            OBSTACLE_3: { x: 2396, y: 264 },
+            OBSTACLE_4: { x: 2544, y: 260 },
+            OBSTACLE_5: { x: 2724, y: 252 },
+            PTERODACTYL: { x: 1756, y: 224 },
+//            CACTUS_LARGE: { x: 652, y: 2 },
+//            CACTUS_SMALL: { x: 446, y: 2 },
             CLOUD: { x: 166, y: 2 },
-            HORIZON: { x: 2, y: 104 },
+//            HORIZON: { x: 2, y: 104 },
+            HORIZON: { x: 0, y: 356 },
+            SMOTRA: { x: 0, y: 0 },
             MOON: { x: 954, y: 2 },
-            PTERODACTYL: { x: 260, y: 2 },
             RESTART: { x: 2, y: 2 },
             TEXT_SPRITE: { x: 1294, y: 2 },
-            TREX: { x: 1678, y: 2 },
+//            TREX: { x: 1678, y: 2 },
+            TREX: { x: 0, y: 231 },
             STAR: { x: 1276, y: 2 }
         }
     };
@@ -548,7 +576,7 @@
 
                 // Check for collisions.
                 var collision = hasObstacles &&
-                    checkForCollision(this.horizon.obstacles[0], this.tRex);
+                    checkForCollision(this.horizon.obstacles[0], this.tRex, this.canvasCtx);
 
                 if (!collision) {
                     this.distanceRan += this.currentSpeed * deltaTime / this.msPerFrame;
@@ -768,11 +796,12 @@
             this.playSound(this.soundFx.HIT);
             vibrate(200);
 
-            this.stop();
+//            this.tRex.update(0, Trex.status.RUNNING);
             this.crashed = true;
             this.distanceMeter.acheivement = false;
 
             this.tRex.update(100, Trex.status.CRASHED);
+            this.stop();
 
             // Game over panel.
             if (!this.gameOverPanel) {
@@ -1116,13 +1145,36 @@
         // Debug outer box
         if (opt_canvasCtx) {
             drawCollisionBoxes(opt_canvasCtx, tRexBox, obstacleBox);
+
+            var collisionBoxes = obstacle.collisionBoxes;
+            var tRexCollisionBoxes = tRex.ducking
+                ? Trex.collisionBoxes.DUCKING
+                : (tRex.jumping ? Trex.collisionBoxes.JUMPING : Trex.collisionBoxes.RUNNING);
+
+            for (var t = 0; t < tRexCollisionBoxes.length; t++) {
+                for (var i = 0; i < collisionBoxes.length; i++) {
+                    // Adjust the box to actual positions.
+                    var adjTrexBox =
+                        createAdjustedCollisionBox(tRexCollisionBoxes[t], tRexBox);
+                    var adjObstacleBox =
+                        createAdjustedCollisionBox(collisionBoxes[i], obstacleBox);
+                    var crashed = boxCompare(adjTrexBox, adjObstacleBox);
+
+                    // Draw boxes for debug.
+                    if (opt_canvasCtx) {
+                        drawCollisionBoxes(opt_canvasCtx, adjTrexBox, adjObstacleBox);
+                    }
+                }
+            }
+
         }
 
         // Simple outer bounds check.
         if (boxCompare(tRexBox, obstacleBox)) {
             var collisionBoxes = obstacle.collisionBoxes;
-            var tRexCollisionBoxes = tRex.ducking ?
-                Trex.collisionBoxes.DUCKING : Trex.collisionBoxes.RUNNING;
+            var tRexCollisionBoxes = tRex.ducking
+                ? Trex.collisionBoxes.DUCKING
+                : (tRex.jumping ? Trex.collisionBoxes.JUMPING : Trex.collisionBoxes.RUNNING);
 
             // Detailed axis aligned box check.
             for (var t = 0; t < tRexCollisionBoxes.length; t++) {
@@ -1145,6 +1197,7 @@
                 }
             }
         }
+
         return false;
     };
 
@@ -1168,6 +1221,8 @@
      * Draw the collision boxes for debug.
      */
     function drawCollisionBoxes(canvasCtx, tRexBox, obstacleBox) {
+//        return;
+
         canvasCtx.save();
         canvasCtx.strokeStyle = '#f00';
         canvasCtx.strokeRect(tRexBox.x, tRexBox.y, tRexBox.width, tRexBox.height);
@@ -1268,7 +1323,8 @@
      * Maximum obstacle grouping count.
      * @const
      */
-    Obstacle.MAX_OBSTACLE_LENGTH = 3,
+//    Obstacle.MAX_OBSTACLE_LENGTH = 3,
+    Obstacle.MAX_OBSTACLE_LENGTH = 1,
 
 
         Obstacle.prototype = {
@@ -1425,48 +1481,88 @@
      */
     Obstacle.types = [
         {
-            type: 'CACTUS_SMALL',
-            width: 17,
-            height: 35,
-            yPos: 105,
+            type: 'OBSTACLE_0',
+            width: 62,
+            height: 26,
+            yPos: 135,
             multipleSpeed: 4,
             minGap: 120,
             minSpeed: 0,
             collisionBoxes: [
-                new CollisionBox(0, 7, 5, 27),
-                new CollisionBox(4, 0, 6, 34),
-                new CollisionBox(10, 4, 7, 14)
+                new CollisionBox(0, 0, 62, 26),
             ]
         },
         {
-            type: 'CACTUS_LARGE',
-            width: 25,
-            height: 50,
-            yPos: 90,
-            multipleSpeed: 7,
+            type: 'OBSTACLE_1',
+            width: 52,
+            height: 52,
+            yPos: 157,
+            multipleSpeed: 4,
             minGap: 120,
             minSpeed: 0,
             collisionBoxes: [
-                new CollisionBox(0, 12, 7, 38),
-                new CollisionBox(8, 0, 7, 49),
-                new CollisionBox(13, 10, 10, 38)
+                new CollisionBox(0, 0, 52, 52),
+            ]
+        },
+        {
+            type: 'OBSTACLE_2',
+            width: 76,
+            height: 38,
+            yPos: 161 - 38,
+            multipleSpeed: 4,
+            minGap: 120,
+            minSpeed: 0,
+            collisionBoxes: [
+                new CollisionBox(0, 0, 76, 38),
+            ]
+        },
+        {
+            type: 'OBSTACLE_3',
+            width: 54,
+            height: 46,
+            yPos: 161 - 46,
+            multipleSpeed: 4,
+            minGap: 120,
+            minSpeed: 0,
+            collisionBoxes: [
+                new CollisionBox(0, 0, 54, 46),
+            ]
+        },
+        {
+            type: 'OBSTACLE_4',
+            width: 70,
+            height: 48,
+            yPos: 161 - 48,
+            multipleSpeed: 4,
+            minGap: 120,
+            minSpeed: 0,
+            collisionBoxes: [
+                new CollisionBox(0, 0, 70, 48),
+            ]
+        },
+        {
+            type: 'OBSTACLE_5',
+            width: 72,
+            height: 52,
+            yPos: 161 - 52,
+            multipleSpeed: 4,
+            minGap: 120,
+            minSpeed: 0,
+            collisionBoxes: [
+                new CollisionBox(0, 0, 72, 52),
             ]
         },
         {
             type: 'PTERODACTYL',
-            width: 46,
-            height: 40,
+            width: 26,
+            height: 26,
             yPos: [100, 75, 50], // Variable height.
             yPosMobile: [100, 50], // Variable height mobile.
             multipleSpeed: 999,
             minSpeed: 8.5,
             minGap: 150,
             collisionBoxes: [
-                new CollisionBox(15, 15, 16, 5),
-                new CollisionBox(18, 21, 24, 6),
-                new CollisionBox(2, 14, 4, 3),
-                new CollisionBox(6, 10, 4, 7),
-                new CollisionBox(10, 8, 6, 9)
+                new CollisionBox(0, 0, 26, 26),
             ],
             numFrames: 2,
             frameRate: 1000 / 6,
@@ -1513,6 +1609,9 @@
     };
 
 
+    var tRexWidth = 78;
+    var tRexHeight = 62;
+
     /**
      * T-rex player config.
      * @enum {number}
@@ -1520,35 +1619,64 @@
     Trex.config = {
         DROP_VELOCITY: -5,
         GRAVITY: 0.6,
-        HEIGHT: 47,
-        HEIGHT_DUCK: 25,
+//        HEIGHT: 47,
+        HEIGHT: tRexHeight,
+//        HEIGHT_DUCK: 25,
+        HEIGHT_DUCK: tRexHeight,
         INIITAL_JUMP_VELOCITY: -10,
         INTRO_DURATION: 1500,
         MAX_JUMP_HEIGHT: 30,
         MIN_JUMP_HEIGHT: 30,
         SPEED_DROP_COEFFICIENT: 3,
-        SPRITE_WIDTH: 262,
+//        SPRITE_WIDTH: 262,
         START_X_POS: 50,
-        WIDTH: 44,
-        WIDTH_DUCK: 59
+//        WIDTH: 27,
+        WIDTH: tRexWidth,
+        WIDTH_JUMP: tRexWidth,
+//        WIDTH_DUCK: 59,
+        WIDTH_DUCK: tRexWidth,
     };
 
-
+//165/105
     /**
      * Used in collision detection.
      * @type {Array<CollisionBox>}
      */
     Trex.collisionBoxes = {
+        JUMPING: [
+            // body
+            new CollisionBox(10, 0, 20, 60),
+            // stroller
+            new CollisionBox(38, 32, 36, 22),
+            new CollisionBox(50, 54, 8, 8),
+            new CollisionBox(66, 24, 8, 8),
+        ],
         DUCKING: [
-            new CollisionBox(1, 18, 55, 25)
+            // body
+            new CollisionBox(6, 20, 30, 42),
+            // stroller
+            new CollisionBox(46, 42, 20, 20),
+            new CollisionBox(62, 28, 4, 14),
+            new CollisionBox(66, 34, 6, 12),
         ],
         RUNNING: [
-            new CollisionBox(22, 0, 17, 16),
+            // ear
+            new CollisionBox(10, 4, 20, 8),
+            // body
+            new CollisionBox(16, 2, 12, 60),
+            // stroller
+            new CollisionBox(36, 40, 24, 12),
+            new CollisionBox(58, 26, 4, 6),
+            new CollisionBox(58, 32, 10, 12),
+            // wheels
+            new CollisionBox(42, 54, 20, 8),
+/*
             new CollisionBox(1, 18, 30, 9),
             new CollisionBox(10, 35, 14, 8),
             new CollisionBox(1, 24, 29, 5),
             new CollisionBox(5, 30, 21, 4),
             new CollisionBox(9, 34, 15, 4)
+*/
         ]
     };
 
@@ -1578,24 +1706,35 @@
      */
     Trex.animFrames = {
         WAITING: {
-            frames: [44, 0],
+            frames: [0],
             msPerFrame: 1000 / 3
         },
         RUNNING: {
-            frames: [88, 132],
-            msPerFrame: 1000 / 12
+            frames: [
+                tRexWidth,
+                tRexWidth * 2,
+                tRexWidth * 3,
+                tRexWidth * 4,
+                tRexWidth * 5,
+            ],
+            msPerFrame: 100,
         },
         CRASHED: {
-            frames: [220],
-            msPerFrame: 1000 / 60
-        },
-        JUMPING: {
             frames: [0],
             msPerFrame: 1000 / 60
         },
+        JUMPING: {
+            frames: [tRexWidth * 6],
+            msPerFrame: 1000 / 60
+        },
         DUCKING: {
-            frames: [262, 321],
-            msPerFrame: 1000 / 8
+            frames: [
+                tRexWidth * 7,
+                tRexWidth * 8,
+                tRexWidth * 9,
+                tRexWidth * 10,
+            ],
+            msPerFrame: 1000 / 15
         }
     };
 
@@ -1654,6 +1793,8 @@
             if (this.status == Trex.status.WAITING) {
                 this.blink(getTimeStamp());
             } else {
+                console.log(this.status)
+                console.log(this.currentAnimFrames[this.currentFrame])
                 this.draw(this.currentAnimFrames[this.currentFrame], 0);
             }
 
@@ -1679,8 +1820,7 @@
         draw: function (x, y) {
             var sourceX = x;
             var sourceY = y;
-            var sourceWidth = this.ducking && this.status != Trex.status.CRASHED ?
-                this.config.WIDTH_DUCK : this.config.WIDTH;
+            var sourceWidth = this.config.WIDTH;
             var sourceHeight = this.config.HEIGHT;
 
             if (IS_HIDPI) {
@@ -1699,17 +1839,22 @@
                 this.canvasCtx.drawImage(Runner.imageSprite, sourceX, sourceY,
                     sourceWidth, sourceHeight,
                     this.xPos, this.yPos,
-                    this.config.WIDTH_DUCK, this.config.HEIGHT);
+                    this.config.WIDTH, this.config.HEIGHT);
             } else {
-                // Crashed whilst ducking. Trex is standing up so needs adjustment.
+                // Crashed whilst ducking. Trex is standing up so needs adjus tment.
                 if (this.ducking && this.status == Trex.status.CRASHED) {
+                    this.xPos++;
+                    this.xPos++;
+                    this.xPos++;
                     this.xPos++;
                 }
                 // Standing / running
                 this.canvasCtx.drawImage(Runner.imageSprite, sourceX, sourceY,
                     sourceWidth, sourceHeight,
                     this.xPos, this.yPos,
-                    this.config.WIDTH, this.config.HEIGHT);
+                    this.config.WIDTH,
+                    this.config.HEIGHT
+                );
             }
         },
 
@@ -1725,9 +1870,12 @@
          * @param {number} time Current time in milliseconds.
          */
         blink: function (time) {
+            return;
             var deltaTime = time - this.animStartTime;
 
             if (deltaTime >= this.blinkDelay) {
+                console.log(this.currentAnimFrames[this.currentFrame])
+
                 this.draw(this.currentAnimFrames[this.currentFrame], 0);
 
                 if (this.currentFrame == 1) {
@@ -1831,6 +1979,7 @@
             this.jumpVelocity = 0;
             this.jumping = false;
             this.ducking = false;
+            this.reachedMinHeight = true;
             this.update(0, Trex.status.RUNNING);
             this.midair = false;
             this.speedDrop = false;
@@ -2384,8 +2533,8 @@
      */
     HorizonLine.dimensions = {
         WIDTH: 600,
-        HEIGHT: 12,
-        YPOS: 127
+        HEIGHT: 68,
+        YPOS: 161,
     };
 
 
@@ -2480,6 +2629,132 @@
         }
     };
 
+    /**
+     * Horizon Line.
+     * Consists of two connecting lines. Randomly assigns a flat / bumpy horizon.
+     * @param {HTMLCanvasElement} canvas
+     * @param {Object} spritePos Horizon position in sprite.
+     * @constructor
+     */
+    function Smotra(canvas, spritePos) {
+        this.spritePos = spritePos;
+        this.canvas = canvas;
+        this.canvasCtx = canvas.getContext('2d');
+        this.sourceDimensions = {};
+        this.dimensions = Smotra.dimensions;
+        this.sourceXPos = [this.spritePos.x, this.spritePos.x +
+            this.dimensions.WIDTH];
+        this.xPos = [];
+        this.yPos = 0;
+        this.bumpThreshold = 0.5;
+
+        this.setSourceDimensions();
+        this.draw();
+    };
+
+
+    /**
+     * Horizon line dimensions.
+     * @enum {number}
+     */
+    Smotra.dimensions = {
+        WIDTH: 2868 / 4,
+        HEIGHT: 100,
+        YPOS: 0,
+    };
+
+
+    Smotra.prototype = {
+        /**
+         * Set the source dimensions of the horizon line.
+         */
+        setSourceDimensions: function () {
+
+            for (var dimension in Smotra.dimensions) {
+                if (IS_HIDPI) {
+                    if (dimension != 'YPOS') {
+                        this.sourceDimensions[dimension] =
+                            Smotra.dimensions[dimension] * 2;
+                    }
+                } else {
+                    this.sourceDimensions[dimension] =
+                        Smotra.dimensions[dimension];
+                }
+                this.dimensions[dimension] = Smotra.dimensions[dimension];
+            }
+
+            this.xPos = [0, Smotra.dimensions.WIDTH];
+            this.yPos = Smotra.dimensions.YPOS;
+        },
+
+        /**
+         * Return the crop x position of a type.
+         */
+        getRandomType: function () {
+            return Math.random() > this.bumpThreshold ? this.dimensions.WIDTH : 0;
+        },
+
+        /**
+         * Draw the horizon line.
+         */
+        draw: function () {
+            this.canvasCtx.drawImage(Runner.imageSprite, this.sourceXPos[0],
+                this.spritePos.y,
+                this.sourceDimensions.WIDTH, this.sourceDimensions.HEIGHT,
+                this.xPos[0], this.yPos,
+                this.dimensions.WIDTH, this.dimensions.HEIGHT);
+
+            this.canvasCtx.drawImage(Runner.imageSprite, this.sourceXPos[1],
+                this.spritePos.y,
+                this.sourceDimensions.WIDTH, this.sourceDimensions.HEIGHT,
+                this.xPos[1], this.yPos,
+                this.dimensions.WIDTH, this.dimensions.HEIGHT);
+        },
+
+        /**
+         * Update the x position of an indivdual piece of the line.
+         * @param {number} pos Line position.
+         * @param {number} increment
+         */
+        updateXPos: function (pos, increment) {
+            var line1 = pos;
+            var line2 = pos == 0 ? 1 : 0;
+
+            this.xPos[line1] -= increment;
+            this.xPos[line2] = this.xPos[line1] + this.dimensions.WIDTH;
+
+            if (this.xPos[line1] <= -this.dimensions.WIDTH) {
+                this.xPos[line1] += this.dimensions.WIDTH * 2;
+                this.xPos[line2] = this.xPos[line1] - this.dimensions.WIDTH;
+                this.sourceXPos[line1] = this.getRandomType() + this.spritePos.x;
+            }
+        },
+
+        /**
+         * Update the horizon line.
+         * @param {number} deltaTime
+         * @param {number} speed
+         */
+        update: function (deltaTime, speed) {
+            var increment = Math.floor(speed * (FPS / 1000) * deltaTime);
+
+            if (this.xPos[0] <= 0) {
+                this.updateXPos(0, increment);
+            } else {
+                this.updateXPos(1, increment);
+            }
+            this.draw();
+        },
+
+        /**
+         * Reset horizon to the starting position.
+         */
+        reset: function () {
+            this.xPos[0] = 0;
+            this.xPos[1] = Smotra.dimensions.WIDTH;
+        }
+    };
+
 
     //******************************************************************************
 
@@ -2534,6 +2809,7 @@
         init: function () {
             this.addCloud();
             this.horizonLine = new HorizonLine(this.canvas, this.spritePos.HORIZON);
+            this.smotra = new Smotra(this.canvas, this.spritePos.SMOTRA);
             this.nightMode = new NightMode(this.canvas, this.spritePos.MOON,
                 this.dimensions.WIDTH);
         },
@@ -2549,6 +2825,7 @@
         update: function (deltaTime, currentSpeed, updateObstacles, showNightMode) {
             this.runningTime += deltaTime;
             this.horizonLine.update(deltaTime, currentSpeed);
+            this.smotra.update(deltaTime, currentSpeed * .5);
             this.nightMode.update(showNightMode);
             this.updateClouds(deltaTime, currentSpeed);
 
@@ -2679,6 +2956,7 @@
         reset: function () {
             this.obstacles = [];
             this.horizonLine.reset();
+            this.smotra.reset();
             this.nightMode.reset();
         },
 

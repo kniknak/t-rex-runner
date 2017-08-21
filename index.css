@@ -38,16 +38,17 @@ html, body {
 }
 
 .offline .runner-container {
-  height: 150px;
+  height: 246px;
   max-width: 600px;
   overflow: hidden;
   position: absolute;
   top: 35px;
-  width: 44px;
+  width: 85px;
+  background-color: #262626;
 }
 
 .offline .runner-canvas {
-  height: 150px;
+  height: 246px;
   max-width: 600px;
   opacity: 1;
   overflow: hidden;
