@@ -1617,13 +1617,13 @@
      * @enum {number}
      */
     Trex.config = {
-        DROP_VELOCITY: -5,
-        GRAVITY: 0.6,
+        DROP_VELOCITY: -7,
+        GRAVITY: 0.5,
 //        HEIGHT: 47,
         HEIGHT: tRexHeight,
 //        HEIGHT_DUCK: 25,
         HEIGHT_DUCK: tRexHeight,
-        INIITAL_JUMP_VELOCITY: -10,
+        INIITAL_JUMP_VELOCITY: -14,
         INTRO_DURATION: 1500,
         MAX_JUMP_HEIGHT: 30,
         MIN_JUMP_HEIGHT: 30,
