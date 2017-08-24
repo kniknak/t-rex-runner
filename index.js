@@ -3,18 +3,6 @@
 // found in the LICENSE file.
 // extract from chromium source code by @liuwayong
 (function () {
-    function drawBox(context, color, dimensions) {
-        var alpha = context.globalAlpha;
-
-        context.globalAlpha = 0.6
-        context.beginPath();
-        context.rect(dimensions[0], dimensions[1], dimensions[2], dimensions[3]);
-        context.fillStyle = color;
-
-        context.fill();
-        context.globalAlpha = alpha;
-    }
-
     'use strict';
     /**
      * T-Rex runner.
@@ -90,7 +78,9 @@
      * Default game width.
      * @const
      */
-    var DEFAULT_WIDTH = 600;
+    var DEFAULT_WIDTH = 620;
+    var DEFAULT_HEIGHT = 310;
+    var HORIZONLINE_OFFSET = 85;
 
     /**
      * Frames per second.
@@ -118,7 +108,7 @@
     Runner.config = {
         ACCELERATION: 0.001,
         BG_CLOUD_SPEED: 0.2,
-        BOTTOM_PAD: 85,
+        BOTTOM_PAD: HORIZONLINE_OFFSET,
         CLEAR_TIME: 3000,
         CLOUD_FREQUENCY: 0.5,
         GAMEOVER_CLEAR_TIME: 750,
@@ -133,7 +123,7 @@
         MAX_OBSTACLE_DUPLICATION: 2,
         MAX_SPEED: 13,
         MIN_JUMP_HEIGHT: 35,
-        MOBILE_SPEED_COEFFICIENT: 1.2,
+        MOBILE_SPEED_COEFFICIENT: 1.8,
         RESOURCE_TEMPLATE_ID: 'audio-resources',
         SPEED: 6,
         SPEED_DROP_COEFFICIENT: 3
@@ -146,7 +136,7 @@
      */
     Runner.defaultDimensions = {
         WIDTH: DEFAULT_WIDTH,
-        HEIGHT: 246,
+        HEIGHT: DEFAULT_HEIGHT,
     };
 
 
@@ -492,7 +482,8 @@
 
                 // CSS animation definition.
                 var keyframes = '@-webkit-keyframes intro { ' +
-                    'from { width:' + Trex.config.WIDTH + 'px }' +
+//                    'from { width:' + Trex.config.WIDTH + 'px }' +
+                    'from { width:' + this.dimensions.WIDTH + 'px }' +
                     'to { width: ' + this.dimensions.WIDTH + 'px }' +
                     '}';
                 document.styleSheets[0].insertRule(keyframes, 0);
@@ -800,7 +791,9 @@
             this.crashed = true;
             this.distanceMeter.acheivement = false;
 
-            this.tRex.update(100, Trex.status.CRASHED);
+            if (this.tRex.status !== Trex.status.JUMPING) {
+                this.tRex.update(100, Trex.status.CRASHED);
+            }
             this.stop();
 
             // Game over panel.
@@ -1221,7 +1214,7 @@
      * Draw the collision boxes for debug.
      */
     function drawCollisionBoxes(canvasCtx, tRexBox, obstacleBox) {
-//        return;
+        return;
 
         canvasCtx.save();
         canvasCtx.strokeStyle = '#f00';
@@ -1484,19 +1477,20 @@
             type: 'OBSTACLE_0',
             width: 62,
             height: 26,
-            yPos: 135,
+            yPos: DEFAULT_HEIGHT - HORIZONLINE_OFFSET - 26,
             multipleSpeed: 4,
             minGap: 120,
             minSpeed: 0,
             collisionBoxes: [
-                new CollisionBox(0, 0, 62, 26),
+                new CollisionBox(4, 4, 54, 22),
+                new CollisionBox(8, 0, 46, 4),
             ]
         },
         {
             type: 'OBSTACLE_1',
             width: 52,
             height: 52,
-            yPos: 157,
+            yPos: DEFAULT_HEIGHT - HORIZONLINE_OFFSET - 5,
             multipleSpeed: 4,
             minGap: 120,
             minSpeed: 0,
@@ -1508,55 +1502,63 @@
             type: 'OBSTACLE_2',
             width: 76,
             height: 38,
-            yPos: 161 - 38,
+            yPos: DEFAULT_HEIGHT - HORIZONLINE_OFFSET - 38,
             multipleSpeed: 4,
             minGap: 120,
             minSpeed: 0,
             collisionBoxes: [
-                new CollisionBox(0, 0, 76, 38),
+                new CollisionBox(0, 0, 38, 38),
+                new CollisionBox(0, 34, 76, 4),
             ]
         },
         {
             type: 'OBSTACLE_3',
             width: 54,
             height: 46,
-            yPos: 161 - 46,
+            yPos: DEFAULT_HEIGHT - HORIZONLINE_OFFSET - 46,
             multipleSpeed: 4,
             minGap: 120,
             minSpeed: 0,
             collisionBoxes: [
-                new CollisionBox(0, 0, 54, 46),
+                new CollisionBox(0, 40, 54, 6),
+                new CollisionBox(24, 2, 6, 44),
             ]
         },
         {
             type: 'OBSTACLE_4',
             width: 70,
             height: 48,
-            yPos: 161 - 48,
+            yPos: DEFAULT_HEIGHT - HORIZONLINE_OFFSET - 48,
             multipleSpeed: 4,
             minGap: 120,
             minSpeed: 0,
             collisionBoxes: [
-                new CollisionBox(0, 0, 70, 48),
+                new CollisionBox(4, 2, 62, 46),
             ]
         },
         {
             type: 'OBSTACLE_5',
             width: 72,
             height: 52,
-            yPos: 161 - 52,
+            yPos: DEFAULT_HEIGHT - HORIZONLINE_OFFSET - 52,
             multipleSpeed: 4,
             minGap: 120,
             minSpeed: 0,
             collisionBoxes: [
-                new CollisionBox(0, 0, 72, 52),
+                new CollisionBox(0, 42, 72, 10),
+                new CollisionBox(20, 0, 36, 2),
+                new CollisionBox(12, 8, 52, 2),
             ]
         },
         {
             type: 'PTERODACTYL',
             width: 26,
             height: 26,
-            yPos: [100, 75, 50], // Variable height.
+            yPos: [
+                150,
+                125,
+                100,
+            ], // Variable height.
             yPosMobile: [100, 50], // Variable height mobile.
             multipleSpeed: 999,
             minSpeed: 8.5,
@@ -1617,13 +1619,13 @@
      * @enum {number}
      */
     Trex.config = {
-        DROP_VELOCITY: -7,
+        DROP_VELOCITY: -5,
         GRAVITY: 0.5,
 //        HEIGHT: 47,
         HEIGHT: tRexHeight,
 //        HEIGHT_DUCK: 25,
         HEIGHT_DUCK: tRexHeight,
-        INIITAL_JUMP_VELOCITY: -14,
+        INIITAL_JUMP_VELOCITY: -10,
         INTRO_DURATION: 1500,
         MAX_JUMP_HEIGHT: 30,
         MIN_JUMP_HEIGHT: 30,
@@ -1734,7 +1736,7 @@
                 tRexWidth * 9,
                 tRexWidth * 10,
             ],
-            msPerFrame: 1000 / 15
+            msPerFrame: 100
         }
     };
 
@@ -1750,7 +1752,7 @@
             this.yPos = this.groundYPos;
             this.minJumpHeight = this.groundYPos - this.config.MIN_JUMP_HEIGHT;
 
-            this.draw(0, 0);
+            this.draw(tRexWidth, 0);
             this.update(0, Trex.status.WAITING);
         },
 
@@ -2534,7 +2536,7 @@
     HorizonLine.dimensions = {
         WIDTH: 600,
         HEIGHT: 68,
-        YPOS: 161,
+        YPOS: DEFAULT_HEIGHT - HORIZONLINE_OFFSET,
     };
 
 
@@ -2660,7 +2662,7 @@
     Smotra.dimensions = {
         WIDTH: 2868 / 4,
         HEIGHT: 100,
-        YPOS: 0,
+        YPOS: 54,
     };
 
 

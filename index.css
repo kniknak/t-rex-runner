@@ -32,24 +32,24 @@ html, body {
   font-size: 1em;
   line-height: 1.55;
   margin: 0 auto;
-  max-width: 600px;
+  max-width: 620px;
   padding-top: 100px;
   width: 100%;
 }
 
 .offline .runner-container {
-  height: 246px;
-  max-width: 600px;
+  height: 310px;
+  max-width: 620px;
   overflow: hidden;
   position: absolute;
   top: 35px;
-  width: 85px;
+  width: 620px;
   background-color: #262626;
 }
 
 .offline .runner-canvas {
-  height: 246px;
-  max-width: 600px;
+  height: 310px;
+  max-width: 620px;
   opacity: 1;
   overflow: hidden;
   position: absolute;
@@ -98,7 +98,7 @@ html, body {
   }
 }
 
-@media (min-width: 600px) and (max-width: 736px) and (orientation: landscape) {
+@media (min-width: 620px) and (max-width: 736px) and (orientation: landscape) {
   .offline .interstitial-wrapper {
     margin-left: 0;
     margin-right: 0;
